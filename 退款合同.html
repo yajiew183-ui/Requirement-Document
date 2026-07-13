@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>退款协议签署</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background-color: #f7f7f7;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            color: #333;
+        }
+        
+        /* 顶部导航栏 */
+        .header {
+            background: #fff;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            border-bottom: 1px solid #eee;
+            font-size: 17px;
+            font-weight: 500;
+        }
+        /* 错号改为优雅的左箭头样式 */
+        .header .back-arrow {
+            font-size: 20px;
+            color: #333;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+        }
+        .header .more {
+            font-weight: bold;
+            color: #666;
+        }
+
+        /* 主体内容区：动态切换 */
+        .content-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* ==========================================
+           【页面一：调用历史签名界面】
+           ========================================== */
+        #history-signature-view {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            padding: 20px;
+        }
+        .tip-banner {
+            background-color: #fff;
+            padding: 16px;
+            text-align: center;
+            font-size: 15px;
+            color: #666;
+            position: absolute;
+            top: 0;
+            width: 100%;
+        }
+        .signature-card {
+            background: #fff;
+            border: 2px solid #ff2a2a; 
+            border-radius: 8px;
+            width: 90%;
+            max-width: 340px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            text-align: center;
+            position: relative;
+            margin-top: 40px;
+        }
+        .signature-card .tag {
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: #ff2a2a; 
+            color: #fff;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 6px 0 6px 0;
+        }
+        .signature-img-wrapper {
+            background: #fafafa;
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 15px 0;
+            border-radius: 4px;
+            border: 1px dashed #ddd;
+        }
+        .signature-img-wrapper img {
+            max-width: 80%;
+            max-height: 80%;
+            object-fit: contain;
+        }
+        .re-write-btn {
+            color: #ff2a2a; 
+            font-size: 14px;
+            background: none;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* ==========================================
+           【页面二：重新手写界面】
+           ========================================== */
+        #canvas-signature-view {
+            display: none; 
+            flex-direction: column;
+            flex: 1;
+            background: #f7f7f7;
+            padding: 16px;
+        }
+        .canvas-tips-area {
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #333;
+            line-height: 1.5;
+        }
+        .canvas-tips-warning {
+            color: #ff2a2a; 
+            font-weight: bold;
+            margin-top: 4px;
+        }
+        .canvas-card {
+            flex: 1;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+            overflow: hidden;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+        }
+
+        /* ==========================================
+           【公共底部操作栏】
+           ========================================== */
+        .footer-action {
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 0 16px 12px 16px;
+            background: #f7f7f7;
+            z-index: 10;
+        }
+        .footer-action button {
+            flex: 1;
+            height: 48px;
+            border-radius: 24px; 
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        /* 页面一底部双按钮样式 */
+        .btn-back-style {
+            background: #fff;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        .btn-confirm-style {
+            background: #ff2a2a; 
+            color: #fff;
+            border: none;
+        }
+
+        /* 页面二底部双按钮样式 */
+        .btn-clear-style {
+            background: #fff;
+            color: #ff2a2a;
+            border: 1px solid #ff2a2a;
+        }
+        .btn-submit-style {
+            background: #ff2a2a;
+            color: #fff;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <span class="back-arrow" id="btn-back">←</span>
+        <span id="header-title">签署退款文件</span>
+        <span class="more">···</span>
+    </div>
+
+    <div class="content-body">
+        
+        <div id="history-signature-view">
+            <div class="tip-banner">
+                检测到您在购买订单时已有手写签名，是否直接使用？
+            </div>
+            
+            <div class="signature-card">
+                <div class="tag">上次购买时留存</div>
+                <div class="signature-img-wrapper">
+                    <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='100'><text x='20' y='70' font-family='Comic Sans MS, cursive' font-size='50' fill='%23333' font-style='italic'>张三</text></svg>" alt="历史签名">
+                </div>
+                <button class="re-write-btn" id="go-to-rewrite">重新手写输入</button>
+            </div>
+        </div>
+
+        <div id="canvas-signature-view">
+            <div class="canvas-tips-area">
+                <div>客户签字（请在空白处签名）</div>
+                <div class="canvas-tips-warning">请工整签字，不要连笔字、草书</div>
+            </div>
+            
+            <div class="canvas-card">
+                <canvas id="signature-canvas"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer-action">
+        <button id="footer-btn-left" class="btn-back-style">返回</button>
+        <button id="footer-btn-right" class="btn-confirm-style">确认使用并下一步</button>
+    </div>
+
+    <script>
+        const viewHistory = document.getElementById('history-signature-view');
+        const viewCanvas = document.getElementById('canvas-signature-view');
+        
+        const btnGoToRewrite = document.getElementById('go-to-rewrite');
+        const btnBackHeader = document.getElementById('btn-back'); // 顶部左箭头
+        const btnLeftFooter = document.getElementById('footer-btn-left'); // 底部左侧按钮
+        const btnRightFooter = document.getElementById('footer-btn-right'); // 底部右侧按钮
+        const headerTitle = document.getElementById('header-title');
+        
+        const canvas = document.getElementById('signature-canvas');
+        let currentMode = 'history'; 
+        
+        function initCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+
+        // 切换到第二页（重新手写）
+        btnGoToRewrite.addEventListener('click', () => {
+            switchToRewriteMode();
+        });
+
+        // 核心改动：顶部【左箭头】点击逻辑
+        btnBackHeader.addEventListener('click', () => {
+            if (currentMode === 'rewrite') {
+                // 如果在第二页，点击左箭头直接切回第一个页面
+                switchToHistoryMode();
+            } else {
+                // 如果已经在第一个页面，点击左箭头执行退出
+                alert('触发返回上一页 / 退出签署流');
+            }
+        });
+
+        // 底部【左侧按钮】点击逻辑（页面一返回，页面二清除）
+        btnLeftFooter.addEventListener('click', () => {
+            if (currentMode === 'rewrite') {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            } else {
+                alert('触发返回上一页 / 退出签署流');
+            }
+        });
+
+        // 底部【右侧按钮】点击逻辑（确认使用 或 完成提交）
+        btnRightFooter.addEventListener('click', () => {
+            if (currentMode === 'history') {
+                const confirmUse = confirm("您选择直接使用上次的电子签名，确认使用吗？");
+                if(confirmUse) {
+                    alert("开始调用历史签名图片，进入下一步。");
+                }
+            } else {
+                alert("提交当前重新手写的签名文件，进入下一步！");
+            }
+        });
+
+        // 逻辑封装：切到第一页历史签名
+        function switchToHistoryMode() {
+            viewCanvas.style.display = 'none';
+            viewHistory.style.display = 'flex';
+            currentMode = 'history';
+            
+            headerTitle.innerText = '签署退款文件';
+            
+            btnLeftFooter.innerText = '返回';
+            btnLeftFooter.className = 'btn-back-style';
+            
+            btnRightFooter.innerText = '确认使用并下一步';
+            btnRightFooter.className = 'btn-confirm-style';
+        }
+
+        // 逻辑封装：切到第二页手写
+        function switchToRewriteMode() {
+            viewHistory.style.display = 'none';
+            viewCanvas.style.display = 'flex';
+            currentMode = 'rewrite';
+            
+            headerTitle.innerText = '客户签字';
+            
+            btnLeftFooter.innerText = '清除';
+            btnLeftFooter.className = 'btn-clear-style';
+            
+            btnRightFooter.innerText = '完成';
+            btnRightFooter.className = 'btn-submit-style';
+            
+            setTimeout(() => {
+                initCanvas();
+                setupCanvasDrawing();
+            }, 50);
+        }
+
+        // ==========================================
+        // Canvas 手写绘图代码
+        // ==========================================
+        let ctx = canvas.getContext('2d');
+        let drawing = false;
+
+        function setupCanvasDrawing() {
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#000000'; 
+
+            canvas.addEventListener('touchstart', (e) => {
+                drawing = true;
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                ctx.beginPath();
+                ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                if (!drawing) return;
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+                ctx.stroke();
+                e.preventDefault(); 
+            });
+
+            canvas.addEventListener('touchend', () => { drawing = false; });
+        }
+        
+        window.addEventListener('resize', () => {
+            if(currentMode === 'rewrite') initCanvas();
+        });
+    </script>
+</body>
+</html>

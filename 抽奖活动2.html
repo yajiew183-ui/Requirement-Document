@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCRM 后台管理系统</title>
+    <style>
+        /* ================= 基础重置与变量 ================= */
+        :root {
+            --primary-color: #f44f23;
+            --primary-hover: #ff6b45;
+            --bg-body: #f0f2f5;
+            --bg-surface: #ffffff;
+            --border-color: #f0f0f0;
+            --border-input: #d9d9d9;
+            --text-main: #333333;
+            --text-regular: #666666;
+            --text-secondary: #999999;
+            --sidebar-width: 208px;
+            --header-height: 48px;
+            --tabs-height: 40px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        body { background-color: var(--bg-body); color: var(--text-main); font-size: 14px; overflow: hidden; height: 100vh; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+
+        /* ================= 整体布局 ================= */
+        .layout { display: flex; height: 100vh; width: 100vw; }
+        .sidebar { width: var(--sidebar-width); background-color: var(--bg-surface); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; flex-shrink: 0; z-index: 10; }
+        .sidebar-logo { height: var(--header-height); display: flex; align-items: center; padding: 0 20px; font-size: 18px; font-weight: 700; color: #000; border-bottom: 1px solid transparent; cursor: pointer; }
+        .sidebar-logo svg { width: 24px; height: 24px; margin-right: 8px; fill: var(--primary-color); }
+        .sidebar-menu { flex: 1; overflow-y: auto; padding: 8px 0; }
+        .menu-item { padding: 0 16px; cursor: pointer; user-select: none; }
+        .menu-title { display: flex; align-items: center; height: 40px; padding: 0 8px; color: var(--text-main); border-radius: 4px; transition: all 0.3s; }
+        .menu-title:hover { color: var(--primary-color); }
+        .menu-icon { width: 16px; height: 16px; margin-right: 10px; display: inline-flex; justify-content: center; align-items: center; font-size: 14px; }
+        .menu-text { flex: 1; }
+        .menu-arrow { font-size: 12px; color: #bfbfbf; transition: transform 0.3s; }
+        .menu-item.expanded .menu-arrow { transform: rotate(180deg); }
+        .submenu { display: none; flex-direction: column; padding-bottom: 4px; }
+        .menu-item.expanded .submenu { display: flex; }
+        .submenu-item { height: 40px; display: flex; align-items: center; padding-left: 42px; color: var(--text-regular); cursor: pointer; margin: 2px 8px; border-radius: 4px; transition: all 0.2s; }
+        .submenu-item:hover { color: var(--primary-color); }
+        .submenu-item.active { background-color: var(--primary-color); color: #fff; }
+        .submenu-item.active:hover { color: #fff; }
+        .sidebar-footer { height: 48px; border-top: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 24px; cursor: pointer; color: var(--text-secondary); }
+        .sidebar-footer:hover { color: var(--primary-color); }
+
+        /* ================= 右侧主内容区 ================= */
+        .main-container { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .header { height: var(--header-height); background-color: var(--bg-surface); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+        .header-title { font-size: 14px; color: var(--text-regular); }
+        .header-actions { display: flex; align-items: center; gap: 16px; color: var(--text-regular); }
+        .header-actions span { cursor: pointer; display: flex; align-items: center; gap: 4px; }
+        .header-actions span:hover { color: var(--primary-color); }
+        .avatar { width: 24px; height: 24px; background: #faad14; border-radius: 50%; display: inline-block; }
+
+        .tabs-nav { height: var(--tabs-height); background-color: var(--bg-surface); display: flex; align-items: center; border-bottom: 1px solid var(--border-color); padding: 0 16px; flex-shrink: 0; overflow-x: auto; }
+        .tab-item { height: 100%; display: flex; align-items: center; padding: 0 16px; color: var(--text-regular); cursor: pointer; border-right: 1px solid var(--border-color); position: relative; background: #fff; }
+        .tab-item:hover { color: var(--primary-color); }
+        .tab-item.active { color: var(--primary-color); background-color: #fff; }
+        .tab-item.active::after { content: ''; position: absolute; bottom: -1px; left: 0; width: 100%; height: 2px; background-color: var(--primary-color); }
+        .tab-close { margin-left: 8px; font-size: 16px; color: #999; line-height: 1; }
+        .tab-close:hover { color: var(--primary-color); }
+
+        .page-content { flex: 1; padding: 20px; overflow-y: auto; }
+        .content-card { background-color: var(--bg-surface); border-radius: 4px; padding: 24px; min-height: calc(100vh - var(--header-height) - var(--tabs-height) - 40px); box-shadow: 0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12); }
+
+        /* ================= 工具栏 (搜索/新建) ================= */
+        .toolbar { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 16px; }
+        .toolbar-left, .toolbar-right { display: flex; gap: 8px; align-items: center; }
+
+        .btn { height: 32px; padding: 4px 15px; font-size: 14px; border-radius: 4px; cursor: pointer; outline: none; transition: all 0.3s; display: inline-flex; align-items: center; justify-content: center; }
+        .btn-primary { background-color: var(--primary-color); border: 1px solid var(--primary-color); color: #fff; }
+        .btn-primary:hover { background-color: var(--primary-hover); border-color: var(--primary-hover); }
+        .btn-default { background-color: #fff; border: 1px solid var(--border-input); color: var(--text-main); }
+        .btn-default:hover { color: var(--primary-color); border-color: var(--primary-color); }
+
+        .ant-input, .ant-select, .ant-textarea { height: 32px; border: 1px solid var(--border-input); border-radius: 4px; padding: 4px 11px; font-size: 14px; color: var(--text-main); outline: none; transition: all 0.3s; background: #fff; }
+        .ant-input:hover, .ant-input:focus, .ant-select:hover, .ant-textarea:hover { border-color: var(--primary-color); }
+        .ant-input::placeholder { color: #bfbfbf; }
+
+        .ant-textarea { width: 100%; height: 80px; resize: none; padding: 8px; }
+
+        .ant-select-wrapper { position: relative; width: 100%; }
+        .ant-select-wrapper select { width: 100%; appearance: none; cursor: pointer; height: 32px; padding: 0 11px; border: 1px solid var(--border-input); border-radius: 4px; }
+        .ant-select-arrow { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); color: #bfbfbf; pointer-events: none; font-size: 12px; }
+
+        /* ================= 表单布局 ================= */
+        .form-row { display: flex; gap: 24px; margin-bottom: 20px; }
+        .form-item { flex: 1; display: flex; flex-direction: column; }
+        .form-label { margin-bottom: 8px; display: block; color: var(--text-main); }
+        .required { color: var(--primary-color); margin-right: 4px; }
+        .section-divider { display: flex; align-items: center; margin: 24px 0; color: var(--text-regular); font-weight: 500; }
+        .section-divider::before { content: ""; flex: 1; height: 1px; background: var(--border-color); margin-right: 12px; }
+        .section-divider::after { content: ""; flex: 1; height: 1px; background: var(--border-color); margin-left: 12px; }
+        .upload-box { width: 160px; height: 100px; border: 1px dashed var(--border-input); border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-secondary); cursor: pointer; background: #fafafa; }
+        .helper-text { color: var(--text-secondary); font-size: 12px; margin-top: 8px; }
+
+        /* ================= 数据表格 ================= */
+        .ant-table { width: 100%; border-collapse: collapse; text-align: left; }
+        .ant-table th { color: var(--text-regular); font-weight: 500; padding: 16px 8px; border-bottom: 1px solid var(--border-color); background: #fff; }
+        .ant-table td { padding: 16px 8px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
+        .empty-data { text-align: center; padding: 40px 0; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); }
+
+        /* ================= 弹窗 ================= */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.45); z-index: 1000; display: none; align-items: center; justify-content: center; }
+        .modal-overlay.active { display: flex; animation: fadeIn 0.2s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-content { background: #fff; border-radius: 4px; width: 520px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
+        .modal-header { padding: 16px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 500; color: rgba(0,0,0,0.85); }
+        .modal-close { cursor: pointer; color: #999; font-size: 20px; line-height: 1; }
+        .modal-close:hover { color: #333; }
+        .modal-body { padding: 24px; color: var(--text-main); }
+        .modal-footer { padding: 10px 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 8px; background: transparent; }
+        
+        /* Modal Tabs */
+        .modal-tabs-header { display: flex; gap: 32px; border-bottom: 1px solid var(--border-color); margin-bottom: 24px; }
+        .tab-head { padding-bottom: 10px; cursor: pointer; color: var(--text-regular); font-size: 14px; }
+        .tab-head.active { color: var(--primary-color); border-bottom: 2px solid var(--primary-color); }
+
+        .properties-tabs { display: flex; gap: 8px; margin-top: 16px; }
+        .properties-tab { flex: 1; padding: 10px 14px; border: 1px solid var(--border-color); border-bottom: none; border-radius: 4px 4px 0 0; background: #fafafa; color: var(--text-regular); cursor: pointer; text-align: center; }
+        .properties-tab.active { background: var(--bg-surface); color: var(--text-main); font-weight: 600; border-color: var(--border-input); }
+        .properties-tab-content { border: 1px solid var(--border-input); border-top: none; border-radius: 0 0 4px 4px; background: #fff; padding: 16px; }
+        .properties-subtab { padding:6px 10px; border:1px solid var(--border-input); background:#fff; border-radius:4px; cursor:pointer; font-size:13px; }
+        .properties-subtab.active { background: #fafafa; border-color: var(--primary-color); color: var(--primary-color); font-weight:600; }
+        .layer-btns { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .layer-btn { padding: 8px 6px; border:1px solid var(--border-input); background:#fff; border-radius:6px; font-size:13px; cursor:pointer; }
+        .layer-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+
+        /* ================= 页面搭建器弹窗 ================= */
+        .page-builder-modal.modal-overlay { align-items: center; justify-content: center; }
+        .page-builder-modal .modal-content { width: 95vw; height: 90vh; max-width: 1400px; min-width: 960px; }
+        .page-builder-modal .modal-body { padding: 0; display: flex; flex-direction: column; height: calc(90vh - 118px); overflow: hidden; }
+        .builder-header { padding: 12px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: #fff; }
+        .builder-header-left { display: flex; align-items: center; gap: 16px; }
+        .builder-header-title { font-size: 16px; font-weight: 500; }
+        .builder-header-actions { display: flex; gap: 12px; }
+
+        .builder-main { display: flex; flex: 1; overflow: hidden; }
+        .builder-sidebar { width: 260px; border-right: 1px solid var(--border-color); background: #fff; display: flex; flex-direction: column; overflow-y: auto; }
+        .builder-panel { padding: 16px; border-bottom: 1px solid var(--border-color); }
+        .builder-panel-title { font-weight: 500; margin-bottom: 12px; color: var(--text-main); }
+        .component-lib { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .component-item { padding: 14px 8px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: all 0.2s; font-size: 13px; color: var(--text-regular); }
+        .component-item:hover { border-color: var(--primary-color); color: var(--primary-color); background: #fff2e8; }
+        .component-icon { font-size: 22px; }
+
+        .template-list { display: flex; flex-direction: column; gap: 10px; }
+        .template-card { padding: 12px; border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .template-card:hover { border-color: var(--primary-color); }
+        .template-card.active { border-color: var(--primary-color); background: #fff2e8; color: var(--primary-color); }
+
+        .builder-canvas-area { flex: 1; display: flex; flex-direction: column; background: #f5f5f5; overflow: hidden; }
+        .builder-toolbar { padding: 12px 16px; background: #fff; border-bottom: 1px solid var(--border-color); display: flex; gap: 12px; align-items: center; }
+        .builder-canvas { flex: 1; overflow-y: auto; padding: 24px; display: flex; justify-content: center; }
+        .builder-phone { width: 375px; min-height: 667px; background: #fff; border: 1px solid #d9d9d9; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: relative; overflow: hidden; }
+        .phone-status-bar { height: 24px; background: #f5f5f5; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999; border-bottom: 1px solid #eee; }
+        .phone-content { min-height: calc(667px - 24px); padding: 16px; position: relative; }
+        .empty-canvas-tip { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #bfbfbf; text-align: center; }
+
+        .canvas-component { position: relative; margin-bottom: 12px; border: 1px dashed transparent; cursor: pointer; transition: all 0.2s; }
+        .canvas-component:hover { border-color: var(--primary-color); }
+        .canvas-component.selected { border: 1px solid var(--primary-color); background: rgba(244, 79, 35, 0.04); }
+        .canvas-component.dragging { opacity: 0.4; }
+        .component-actions { position: absolute; top: -26px; right: -1px; display: none; gap: 4px; z-index: 10; }
+        .canvas-component:hover .component-actions, .canvas-component.selected .component-actions { display: flex; }
+        .component-action-btn { width: 22px; height: 22px; border: 1px solid var(--primary-color); background: #fff; color: var(--primary-color); border-radius: 3px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 12px; }
+        .component-action-btn:hover { background: var(--primary-color); color: #fff; }
+        .move-btn { color: #999; border-color: #d9d9d9; }
+        .move-btn:hover { background: #f5f5f5; color: #333; }
+
+        .builder-properties { width: 300px; border-left: 1px solid var(--border-color); background: #fff; padding: 16px; overflow-y: auto; }
+        .properties-title { font-weight: 500; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
+        .prop-group { margin-bottom: 16px; }
+        .prop-label { display: block; margin-bottom: 6px; color: var(--text-regular); font-size: 13px; }
+        .prop-input { width: 100%; }
+        .prop-row { display: flex; gap: 12px; }
+        .prop-row .prop-group { flex: 1; }
+        .prop-hint { color: #999; font-size: 12px; margin-top: 4px; }
+        .empty-properties { color: #999; text-align: center; padding: 40px 0; }
+
+        /* 组件在画布中的渲染 */
+        .comp-image { display: block; margin: 0 auto; }
+        .image-wrapper { position: relative; display: inline-block; max-width: 100%; }
+        .image-upload-tip { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.6); color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 12px; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+        .canvas-component:hover .image-upload-tip { opacity: 1; }
+        .resize-handle { position: absolute; width: 10px; height: 10px; background: #fff; border: 1px solid var(--primary-color); border-radius: 50%; z-index: 20; display: none; cursor: nwse-resize; }
+        .canvas-component.selected .resize-handle { display: block; }
+        .resize-handle.br { bottom: -5px; right: -5px; }
+        .image-file-input { position: absolute; left: -9999px; top: -9999px; opacity: 0; pointer-events: none; }
+        .comp-text { word-break: break-word; }
+        .comp-button { display: inline-block; padding: 10px 24px; text-align: center; cursor: pointer; }
+        /* 活动状态栏与蒙层 */
+        .activity-status-bar { position: absolute; top: 0; left: 0; width: 100%; background: #fff7e6; color: #ad4e00; text-align: center; padding: 8px 12px; font-size: 13px; z-index: 15; border-bottom: 1px solid rgba(0,0,0,0.06); }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <!-- ================= 左侧导航 ================= -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <svg viewBox="0 0 1024 1024"><path d="M725.3 226.7c-48-52.5-115.3-85.3-189.3-85.3-141.3 0-256 114.7-256 256v426.7c0 141.3 114.7 256 256 256 74 0 141.3-32.8 189.3-85.3l-60.5-60.5c-33.3 35.8-81 58.7-128.8 58.7-94 0-170.7-76.7-170.7-170.7V398.1c0-94 76.7-170.7 170.7-170.7 47.8 0 95.5 22.9 128.8 58.7l60.5-59.4zM298.7 824.7V398.1c0-141.3 114.7-256 256-256V56.7L853.3 227.4 554.7 398.1V312.7c-94 0-170.7 76.7-170.7 170.7v426.7c0 44-16.7 84-44.2 114.3l-41.1-41.1V824.7z"/></svg>
+            SCRM
+        </div>
+        <div class="sidebar-menu" id="sideMenu">
+            <div class="menu-item"><div class="menu-title"><span class="menu-icon">⌂</span><span class="menu-text">首页</span></div></div>
+            <div class="menu-item expanded">
+                <div class="menu-title" onclick="toggleMenu(this)">
+                    <span class="menu-icon">🎟</span><span class="menu-text">抽奖中心</span><span class="menu-arrow">v</span>
+                </div>
+                <div class="submenu">
+                    <div class="submenu-item active" onclick="switchMenu('activities', this)">抽奖活动</div>
+                    <div class="submenu-item" onclick="switchMenu('follow', this)">抽奖活动跟进</div>
+                    <div class="submenu-item" onclick="switchMenu('link', this)">抽奖专属链接</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================= 右侧主体 ================= -->
+    <main class="main-container">
+        <header class="header">
+            <div class="header-title">抽奖活动</div>
+            <div class="header-actions">
+                <span>切换系统 ⇄</span>
+                <span>🔍</span>
+                <span>⛶</span>
+                <span>🔔</span>
+                <span style="color:#333"><span class="avatar"></span> 王辉</span>
+                <span>⚙</span>
+            </div>
+        </header>
+
+        <nav class="tabs-nav" id="tabsNav">
+            <div class="tab-item active" onclick="switchTab(this)">抽奖活动</div>
+        </nav>
+
+        <div class="page-content">
+            <div class="content-card">
+                <div class="toolbar">
+                    <div class="toolbar-left">
+                        <button class="btn btn-primary" onclick="openBasicModal()">+ 新建活动</button>
+                    </div>
+                    <div class="toolbar-right">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="color:#666; white-space:nowrap;">活动类型</span>
+                            <div class="ant-select-wrapper" style="width: 150px;">
+                                <select class="ant-select">
+                                    <option>全部活动类型</option>
+                                    <option>大屏抽奖</option>
+                                    <option>转盘抽奖</option>
+                                    <option>砸金蛋</option>
+                                </select>
+                                <span class="ant-select-arrow">v</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="color:#666; white-space:nowrap;">全部状态</span>
+                            <div class="ant-select-wrapper" style="width: 120px;">
+                                <select class="ant-select">
+                                    <option>全部状态</option>
+                                    <option>未开始</option>
+                                    <option>进行中</option>
+                                    <option>已结束</option>
+                                </select>
+                                <span class="ant-select-arrow">v</span>
+                            </div>
+                        </div>
+                        <input type="text" class="ant-input" placeholder="请输入活动名称" style="width: 200px;">
+                        <button class="btn btn-primary">查询</button>
+                        <button class="btn btn-default">重置</button>
+                    </div>
+                </div>
+
+                <table class="ant-table">
+                    <thead>
+                        <tr><th>活动名称</th><th>活动类型</th><th>活动时间</th><th>已中奖品数量</th><th>总奖品数量</th><th>参与人数</th><th>抽奖次数</th><th>活动状态</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr id="emptyRow"><td colspan="9"><div class="empty-data">暂无数据</div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- ================= 弹窗1：基础信息 (image_ce08a8.png) ================= -->
+<div class="modal-overlay" id="basicModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span>新建抽奖活动</span>
+            <span class="modal-close" onclick="closeModal('basicModal')">×</span>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom: 16px;">
+                <label style="display:block; margin-bottom: 8px;">活动类型：</label>
+                <div class="ant-select-wrapper">
+                    <select class="ant-select" id="newActivityType">
+                        <option value="砸金蛋">砸金蛋</option>
+                        <option value="转盘抽奖">转盘抽奖</option>
+                        <option value="大屏抽奖">大屏抽奖</option>
+                    </select>
+                    <span class="ant-select-arrow">v</span>
+                </div>
+            </div>
+            <div style="margin-bottom: 16px;">
+                <label style="display:block; margin-bottom: 8px;">活动名称：</label>
+                <input type="text" id="newActivityName" class="ant-input" style="width: 100%;" placeholder="请输入活动名称">
+            </div>
+            <div>
+                <label style="display:block; margin-bottom: 8px;">活动时间：</label>
+                <input type="date" class="ant-input" style="width: 100%;">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-default" onclick="closeModal('basicModal')">取消</button>
+            <button class="btn btn-primary" onclick="confirmAndOpenDetails()">确定新建</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= 弹窗2：详细设置 (image_cdf67c.png) ================= -->
+<div class="modal-overlay" id="detailedModal">
+    <div class="modal-content" style="width: 800px;">
+        <div class="modal-header">
+            <span>新建砸金蛋抽奖活动</span>
+            <span class="modal-close" onclick="closeModal('detailedModal')">×</span>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <div class="modal-tabs-header">
+                <div class="tab-head active" onclick="switchDetailedTab('basic')">1 基础设置</div>
+                <div class="tab-head" onclick="switchDetailedTab('prizes')">2 奖品设置</div>
+            </div>
+
+            <!-- 基础设置标签页 -->
+            <div id="basicTabContent" style="display: block;">
+                <div class="form-row">
+                    <div class="form-item">
+                        <label class="form-label"><span class="required">*</span>活动名称</label>
+                        <input type="text" id="finalName" class="ant-input" style="width: 100%;" placeholder="请输入活动名称">
+                    </div>
+                    <div class="form-item">
+                        <label class="form-label"><span class="required">*</span>活动时间</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="date" class="ant-input" style="flex:1;">
+                            <span style="line-height: 32px;">-</span>
+                            <input type="date" class="ant-input" style="flex:1;">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-item">
+                    <label class="form-label"><span class="required">*</span>活动说明</label>
+                    <textarea class="ant-textarea"></textarea>
+                </div>
+                <div class="section-divider">抽奖页面设置</div>
+                <div class="form-item">
+                    <label class="form-label">页面设置</label>
+                    <button type="button" class="btn btn-primary" onclick="openPageBuilder()">+ 新增页面</button>
+                </div>
+                <div class="section-divider">参与设置</div>
+                <div class="form-row">
+                    <div class="form-item"><label class="form-label">总共可抽奖次数</label><input type="number" class="ant-input" placeholder="0"></div>
+                    <div class="form-item"><label class="form-label">每天可抽奖次数</label><input type="number" class="ant-input" placeholder="0"></div>
+                </div>
+                <div class="section-divider">中奖设置</div>
+                <div class="form-row">
+                    <div class="form-item"><label class="form-label">总共可中奖次数</label><input type="number" class="ant-input" placeholder="0"></div>
+                    <div class="form-item"><label class="form-label">每天可中奖次数</label><input type="number" class="ant-input" placeholder="0"></div>
+                </div>
+            </div>
+
+            <!-- 奖品设置标签页 -->
+            <div id="prizesTabContent" style="display: none;">
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span style="font-size: 14px; color: var(--text-regular);">请配置奖品信息，中奖概率支持小数，范围 0.01 - 100.00</span>
+                        <button type="button" class="btn btn-primary" onclick="addPrizeRow()">+ 添加奖品</button>
+                    </div>
+                    <table class="ant-table" style="margin-bottom: 20px;">
+                        <thead>
+                            <tr>
+                                <th>奖品名称</th>
+                                <th>奖品图片</th>
+                                <th>奖品数量</th>
+                                <th>中奖概率(%)</th>
+                                <th>排序</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="prizesTableBody">
+                            <tr id="emptyPrizeRow">
+                                <td colspan="6"><div class="empty-data">暂无奖品，请点击"添加奖品"新增</div></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 未中奖设置 -->
+                <div style="border-top: 1px solid var(--border-color); padding-top: 16px;">
+                    <div style="font-weight: 500; margin-bottom: 12px; color: var(--text-main);">未中奖设置</div>
+                    <div class="form-row">
+                        <div class="form-item">
+                            <label class="form-label">提示名称</label>
+                            <input type="text" id="noPrizeText" class="ant-input" placeholder="请输入未中奖提示名称" style="width: 100%;">
+                            <div class="helper-text">如：谢谢惠顾、再接再厉等</div>
+                        </div>
+                        <div class="form-item">
+                            <label class="form-label">提示图片</label>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div class="upload-box" id="noPrizeImageBox" onclick="triggerNoPrizeImageUpload()" style="width: 100%; height: 60px;">
+                                    <span id="noPrizeImagePlaceholder">📷 点击上传图片</span>
+                                    <img id="noPrizeImage" style="display: none; max-width: 100%; max-height: 100%; object-fit: contain;">
+                                </div>
+                                <input type="file" id="noPrizeImageInput" accept="image/*" style="display: none;" onchange="handleNoPrizeImageUpload(this)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-default" onclick="closeModal('detailedModal')">取消</button>
+            <button class="btn btn-primary" onclick="finalSave()">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= 弹窗3：页面搭建器 ================= -->
+<div class="modal-overlay page-builder-modal" id="pageBuilderModal">
+    <div class="modal-content">
+        <div class="builder-header">
+            <div class="builder-header-left">
+                <span class="builder-header-title">砸金蛋页面配置</span>
+                <span class="helper-text">可视化拖拽搭建活动页面，右侧实时预览移动端效果</span>
+            </div>
+            <div class="builder-header-actions">
+                <button type="button" class="btn btn-default" onclick="saveAsMyTemplate()">保存为我的模板</button>
+                <button type="button" class="btn btn-primary" onclick="savePageBuilder()">保存页面</button>
+                <span class="modal-close" onclick="closeModal('pageBuilderModal')">×</span>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="builder-main">
+                <!-- 左侧：组件库与模板 -->
+                <aside class="builder-sidebar">
+                    <div class="builder-panel">
+                        <div class="builder-panel-title">基础组件</div>
+                        <div class="component-lib">
+                            <div class="component-item" onclick="addComponent('image')">
+                                <span class="component-icon">🖼</span>
+                                <span>图片</span>
+                            </div>
+                            <div class="component-item" onclick="addComponent('text')">
+                                <span class="component-icon">📝</span>
+                                <span>文本</span>
+                            </div>
+                            <div class="component-item" onclick="addComponent('button')">
+                                <span class="component-icon">🔘</span>
+                                <span>按钮</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 页面设置 面板已移除（按需求） -->
+                </aside>
+
+                <!-- 中间：画布 -->
+                <section class="builder-canvas-area">
+                    <div class="builder-toolbar">
+                        <span style="color:#666; font-size:13px;">画布操作：点击左侧组件添加到页面，点击画布中的组件编辑属性</span>
+                    </div>
+                    <div class="builder-canvas">
+                        <div class="builder-phone" id="builderPhone">
+                            <div class="phone-status-bar">9:41</div>
+                            <div class="phone-content" id="phoneContent">
+                                <div class="empty-canvas-tip" id="emptyCanvasTip">
+                                    <div style="font-size: 36px; margin-bottom: 8px;">📱</div>
+                                    <div>点击左侧组件开始搭建页面</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 隐藏文件上传控件 -->
+                <input type="file" class="image-file-input" id="imageFileInput" accept="image/*" onchange="handleImageFileUpload(this)">
+
+                <!-- 右侧：属性面板 -->
+                <aside class="builder-properties" id="propertiesPanel">
+                    <div class="properties-title">组件属性</div>
+                    <div class="properties-tabs">
+                        <button type="button" class="properties-tab active">组件属性</button>
+                    </div>
+                    <div class="empty-properties" id="emptyProperties">
+                        <div style="font-size: 28px; margin-bottom: 8px;">✨</div>
+                        <div>请在画布中选择一个组件进行编辑</div>
+                    </div>
+                    <div id="propertiesForm" style="display:none;">
+                        <div id="propertiesTabAttributes" class="properties-tab-content">
+                            <div class="properties-subtabs" style="display:flex;gap:8px;margin-bottom:12px;">
+                                <button type="button" id="subTabProps" class="properties-subtab active" onclick="switchAttributeSubtab('props')">属性</button>
+                            </div>
+                            <div id="subProps" style="display:block;"></div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </div>
+
+</div>
+<!-- ===== 新建抽奖活动弹窗 ===== -->
+<div class="draw-modal-mask" id="drawNewModal">
+  <div class="draw-modal">
+    <!-- 标题 -->
+    <div class="draw-modal-header">
+      <h3>新建抽奖活动</h3>
+      <button class="draw-modal-close" onclick="closeDrawNewModal()">×</button>
+    </div>
+
+    <div class="draw-modal-body">
+      <!-- 步骤切换 -->
+      <div class="draw-steps">
+        <div class="draw-step" data-step="1" onclick="switchDrawStep(1)">1 基础设置</div>
+        <div class="draw-step active" data-step="2" onclick="switchDrawStep(2)">2 奖品设置</div>
+      </div>
+
+      <!-- 步骤 2: 奖品设置 -->
+      <div class="draw-step-panel" id="step-2">
+        <div class="draw-tip-row">
+          <span>请配置奖品信息,中奖概率支持小数,范围 0.01 - 100.00</span>
+          <button class="btn btn-primary" onclick="addPrizeRow()">+ 添加奖品</button>
+        </div>
+
+        <!-- 奖品表格 -->
+        <table class="draw-prize-table">
+          <thead>
+            <tr>
+              <th style="width: 22%;">奖品名称</th>
+              <th style="width: 16%;">奖品图片</th>
+              <th style="width: 16%;">奖品数量</th>
+              <th style="width: 18%;">中奖概率(%)</th>
+              <th style="width: 12%;">排序</th>
+              <th style="width: 10%;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="prizeTableBody">
+            <!-- 一行奖品 -->
+            <tr>
+              <td>
+                <input type="text" class="input wide" placeholder="请输入奖品名称">
+              </td>
+              <td>
+                <label class="upload-box">
+                  <span class="upload-icon">🖼</span>
+                  <span class="upload-label">上传图片</span>
+                  <input type="file" accept="image/*">
+                </label>
+              </td>
+              <td>
+                <div class="num-input-wrap">
+                  <input type="number" value="1" min="0">
+                  <div class="num-spin">
+                    <button type="button" onclick="spinNum(this, 1)">▲</button>
+                    <button type="button" onclick="spinNum(this, -1)">▼</button>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="num-input-wrap">
+                  <input type="number" value="" placeholder="" min="0.01" max="100" step="0.01">
+                  <div class="num-spin">
+                    <button type="button" onclick="spinNum(this, 1)">▲</button>
+                    <button type="button" onclick="spinNum(this, -1)">▼</button>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="num-input-wrap">
+                  <input type="number" value="1" min="1">
+                  <div class="num-spin">
+                    <button type="button" onclick="spinNum(this, 1)">▲</button>
+                    <button type="button" onclick="spinNum(this, -1)">▼</button>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <button class="btn-danger-text" onclick="deletePrizeRow(this)">删除</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- 未中奖设置 -->
+        <div class="no-win-section">
+          <span class="field-label" style="min-width: 70px;">未中奖设置</span>
+          <span class="field-label">提示名称</span>
+          <input type="text" class="input" style="width: 280px;" placeholder="请输入未中奖提示名称">
+          <span class="field-label" style="margin-left: 30px;">提示图片</span>
+          <div class="upload-btn-row">
+            <label class="upload-box">
+              <span class="upload-icon">🖼</span>
+              <input type="file" accept="image/*">
+            </label>
+            <button class="btn btn-primary">上传图片</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部 -->
+    <div class="draw-modal-footer">
+      <button class="btn btn-default" onclick="closeDrawNewModal()">取消</button>
+      <button class="btn btn-primary">保存</button>
+    </div>
+  </div>
+</div>
+<script>
+    // 奖品列表数据
+    let prizesData = [];
+
+    // 菜单切换
+    function toggleMenu(el) { el.parentElement.classList.toggle('expanded'); }
+    
+    // 打开基础弹窗
+    function openBasicModal() { document.getElementById('basicModal').classList.add('active'); }
+    
+    // 关闭通用
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    // 切换详细设置弹窗的标签页
+    function switchDetailedTab(tab) {
+        const basicTab = document.getElementById('basicTabContent');
+        const prizesTab = document.getElementById('prizesTabContent');
+        const tabHeads = document.querySelectorAll('.modal-tabs-header .tab-head');
+        
+        if (tab === 'basic') {
+            basicTab.style.display = 'block';
+            prizesTab.style.display = 'none';
+            tabHeads[0].classList.add('active');
+            tabHeads[1].classList.remove('active');
+        } else if (tab === 'prizes') {
+            basicTab.style.display = 'none';
+            prizesTab.style.display = 'block';
+            tabHeads[0].classList.remove('active');
+            tabHeads[1].classList.add('active');
+        }
+    }
+
+    // 添加奖品行
+    function addPrizeRow() {
+        const tbody = document.getElementById('prizesTableBody');
+        const emptyRow = document.getElementById('emptyPrizeRow');
+        
+        if (emptyRow) {
+            emptyRow.style.display = 'none';
+        }
+
+        const prizeId = Date.now();
+        const prize = {
+            id: prizeId,
+            name: '',
+            image: '',
+            quantity: '',
+            probability: '',
+            sort: prizesData.length + 1
+        };
+        prizesData.push(prize);
+
+        const tr = document.createElement('tr');
+        tr.id = `prize-row-${prizeId}`;
+        tr.innerHTML = `
+            <td>
+                <input type="text" class="ant-input" placeholder="请输入奖品名称" 
+                    value="${prize.name}" style="width: 100%;" 
+                    onchange="updatePrize(${prizeId}, 'name', this.value)">
+            </td>
+            <td style="text-align: center;">
+                <div class="upload-box" onclick="triggerPrizeImageUpload(${prizeId})" 
+                    id="prize-image-box-${prizeId}" style="width: 80px; height: 60px; margin: 0 auto; cursor: pointer;">
+                    <span id="prize-image-placeholder-${prizeId}" style="font-size: 20px;">📷</span>
+                    <img id="prize-image-${prizeId}" style="display: none; max-width: 100%; max-height: 100%; object-fit: contain;">
+                </div>
+                <input type="file" id="prize-image-input-${prizeId}" accept="image/*" 
+                    style="display: none;" onchange="handlePrizeImageUpload(this, ${prizeId})">
+            </td>
+            <td>
+                <input type="number" class="ant-input" placeholder="0" value="${prize.quantity}" 
+                    style="width: 100%;" onchange="updatePrize(${prizeId}, 'quantity', this.value)">
+            </td>
+            <td>
+                <input type="number" class="ant-input" placeholder="0.01-100.00" value="${prize.probability}" 
+                    step="0.01" min="0.01" max="100" style="width: 100%;" 
+                    onchange="updatePrize(${prizeId}, 'probability', this.value)">
+            </td>
+            <td style="text-align: center;">
+                <input type="number" class="ant-input" placeholder="排序" value="${prize.sort}" 
+                    style="width: 100%;" onchange="updatePrize(${prizeId}, 'sort', this.value)">
+            </td>
+            <td style="text-align: center; color: var(--primary-color); cursor: pointer;">
+                <span onclick="deletePrizeRow(${prizeId})" style="cursor: pointer; user-select: none;">删除</span>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    // 更新奖品信息
+    function updatePrize(prizeId, field, value) {
+        const prize = prizesData.find(p => p.id === prizeId);
+        if (prize) {
+            prize[field] = value;
+        }
+    }
+
+    // 删除奖品行
+    function deletePrizeRow(prizeId) {
+        const row = document.getElementById(`prize-row-${prizeId}`);
+        if (row) {
+            row.remove();
+        }
+        prizesData = prizesData.filter(p => p.id !== prizeId);
+        
+        // 如果没有奖品了，显示空状态
+        if (prizesData.length === 0) {
+            const emptyRow = document.getElementById('emptyPrizeRow');
+            if (emptyRow) {
+                emptyRow.style.display = 'table-row';
+            }
+        }
+    }
+
+    // 触发奖品图片上传
+    function triggerPrizeImageUpload(prizeId) {
+        const fileInput = document.getElementById(`prize-image-input-${prizeId}`);
+        if (fileInput) {
+            fileInput.click();
+        }
+    }
+
+    // 处理奖品图片上传
+    function handlePrizeImageUpload(input, prizeId) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // 更新图片显示
+            const imgElement = document.getElementById(`prize-image-${prizeId}`);
+            const placeholderElement = document.getElementById(`prize-image-placeholder-${prizeId}`);
+            
+            imgElement.src = e.target.result;
+            imgElement.style.display = 'block';
+            placeholderElement.style.display = 'none';
+
+            // 更新数据
+            updatePrize(prizeId, 'image', e.target.result);
+            
+            // 重置文件输入
+            input.value = '';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // 触发未中奖图片上传
+    function triggerNoPrizeImageUpload() {
+        const fileInput = document.getElementById('noPrizeImageInput');
+        if (fileInput) {
+            fileInput.click();
+        }
+    }
+
+    // 处理未中奖图片上传
+    function handleNoPrizeImageUpload(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const imgElement = document.getElementById('noPrizeImage');
+            const placeholderElement = document.getElementById('noPrizeImagePlaceholder');
+            
+            imgElement.src = e.target.result;
+            imgElement.style.display = 'block';
+            placeholderElement.style.display = 'none';
+            
+            input.value = '';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // 确定基础信息，弹出详细设置
+    function confirmAndOpenDetails() {
+        // 获取基础值
+        const name = document.getElementById('newActivityName').value;
+        const type = document.getElementById('newActivityType').value;
+        
+        // 赋值给详细弹窗
+        document.getElementById('finalName').value = name;
+        
+        // 重置奖品列表
+        prizesData = [];
+        document.getElementById('prizesTableBody').innerHTML = '<tr id="emptyPrizeRow"><td colspan="6"><div class="empty-data">暂无奖品，请点击"添加奖品"新增</div></td></tr>';
+        
+        // 重置未中奖设置
+        document.getElementById('noPrizeText').value = '';
+        document.getElementById('noPrizeImage').style.display = 'none';
+        document.getElementById('noPrizeImagePlaceholder').style.display = 'block';
+        
+        // 切换弹窗
+        closeModal('basicModal');
+        document.getElementById('detailedModal').classList.add('active');
+        switchDetailedTab('basic');
+    }
+
+    // 侧边栏菜单切换（抽奖活动 / 抽奖活动跟进 / 抽奖专属链接）
+    function switchMenu(key, el) {
+        // 高亮菜单
+        document.querySelectorAll('.submenu-item').forEach(item => item.classList.remove('active'));
+        if (el) el.classList.add('active');
+        // 根据 key 渲染不同页面
+        if (key === 'activities') {
+            // 恢复默认抽奖活动列表视图（原有 page-content）
+            renderActivitiesList();
+        } else if (key === 'follow') {
+            renderFollowUpPage();
+        } else if (key === 'link') {
+            renderLinkPage();
+        }
+    }
+
+    function renderActivitiesList() {
+        const page = document.querySelector('.page-content .content-card');
+        if (!page) return;
+        page.innerHTML = `
+                <div class="toolbar">
+                    <div class="toolbar-left">
+                        <button class="btn btn-primary" onclick="openBasicModal()">+ 新建活动</button>
+                    </div>
+                    <div class="toolbar-right">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="color:#666; white-space:nowrap;">活动类型</span>
+                            <div class="ant-select-wrapper" style="width: 150px;">
+                                <select class="ant-select">
+                                    <option>全部活动类型</option>
+                                    <option>大屏抽奖</option>
+                                    <option>转盘抽奖</option>
+                                    <option>砸金蛋</option>
+                                </select>
+                                <span class="ant-select-arrow">v</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="color:#666; white-space:nowrap;">全部状态</span>
+                            <div class="ant-select-wrapper" style="width: 120px;">
+                                <select class="ant-select">
+                                    <option>全部状态</option>
+                                    <option>未开始</option>
+                                    <option>进行中</option>
+                                    <option>已结束</option>
+                                </select>
+                                <span class="ant-select-arrow">v</span>
+                            </div>
+                        </div>
+                        <input type="text" class="ant-input" placeholder="请输入活动名称" style="width: 200px;">
+                        <button class="btn btn-primary">查询</button>
+                        <button class="btn btn-default">重置</button>
+                    </div>
+                </div>
+
+                <table class="ant-table">
+                    <thead>
+                        <tr><th>活动名称</th><th>活动类型</th><th>活动时间</th><th>已中奖品数量</th><th>总奖品数量</th><th>参与人数</th><th>抽奖次数</th><th>活动状态</th><th>操作</th></tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr id="emptyRow"><td colspan="9"><div class="empty-data">暂无数据</div></td></tr>
+                    </tbody>
+                </table>`;
+    }
+
+    function renderFollowUpPage() {
+        const page = document.querySelector('.page-content .content-card');
+        if (!page) return;
+        page.innerHTML = `
+            <div style="padding:12px;">
+                <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
+                    <div style="display:flex; align-items:center; gap:8px;"><span style="color:#666;">活动名称</span><div class="ant-select-wrapper" style="width:160px;"><select class="ant-select"><option>全部</option></select><span class="ant-select-arrow">v</span></div></div>
+                    <div style="display:flex; align-items:center; gap:8px;"><span style="color:#666;">活动类型</span><div class="ant-select-wrapper" style="width:160px;"><select class="ant-select"><option>全部</option><option>大屏抽奖</option><option>转盘抽奖</option><option>砸金蛋</option></select><span class="ant-select-arrow">v</span></div></div>
+                    <div style="display:flex; align-items:center; gap:8px;"><span style="color:#666;">微信昵称</span><input class="ant-input" placeholder="请输入微信昵称" style="width:160px;"></div>
+                    <div style="display:flex; align-items:center; gap:8px;"><span style="color:#666;">员工名称</span><input class="ant-input" placeholder="请输入员工名称" style="width:160px;"></div>
+                    <div style="display:flex; align-items:center; gap:8px;"><span style="color:#666;">选择日期</span><input type="date" class="ant-input" style="width:120px;"><span>至</span><input type="date" class="ant-input" style="width:120px;"></div>
+                    <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+                        <button class="btn btn-primary">查询</button>
+                        <button class="btn btn-default">重置</button>
+                        <button class="btn" style="background:#4caf50; color:#fff; border:1px solid #4caf50;">导出报表</button>
+                    </div>
+                </div>
+
+                <table class="ant-table" style="margin-top:8px;">
+                    <thead>
+                        <tr><th style="width:60px;">序号</th><th>活动名称</th><th>活动类型</th><th>企微名称</th><th>用户微信昵称</th><th>OpenID</th><th>首次进入时间</th><th>首次中奖时间</th><th>奖品</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="9"><div class="empty-data">暂无数据</div></td></tr>
+                    </tbody>
+                </table>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; color:#999;">
+                    <div>共 0 条</div>
+                    <div>10 条/页 &nbsp; <button class="btn btn-default" style="margin-left:8px;">上一页</button> <button class="btn btn-default">下一页</button></div>
+                </div>
+            </div>`;
+    }
+
+    function renderLinkPage() {
+        const page = document.querySelector('.page-content .content-card');
+        if (!page) return;
+        page.innerHTML = `
+            <div style="padding:20px;">
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                    <span style="color:#666;">活动类型</span>
+                    <div class="ant-select-wrapper" style="width:160px;">
+                        <select id="linkTypeSelect" class="ant-select" onchange="updateLinkList(this.value)">
+                            <option value="all">全部</option>
+                            <option value="大屏抽奖">大屏抽奖</option>
+                            <option value="转盘抽奖">转盘抽奖</option>
+                            <option value="砸金蛋">砸金蛋</option>
+                        </select>
+                        <span class="ant-select-arrow">v</span>
+                    </div>
+                    <div style="margin-left:auto; color:#999;">点击复制链接并分享给用户</div>
+                </div>
+
+                <div id="linkContainer"></div>
+            </div>`;
+
+        // 初始化示例数据（页面会以实际数据替换）
+        if (!window.linksByType) {
+            window.linksByType = {
+                '大屏抽奖': [],
+                '转盘抽奖': [],
+                '砸金蛋': []
+            };
+        }
+        updateLinkList('all');
+    }
+
+    function updateLinkList(filter) {
+        const container = document.getElementById('linkContainer');
+        if (!container) return;
+        const data = window.linksByType || { '大屏抽奖': [], '转盘抽奖': [], '砸金蛋': [] };
+        const types = ['大屏抽奖', '转盘抽奖', '砸金蛋'];
+        let html = '';
+        const showTypes = filter === 'all' ? types : [filter];
+        showTypes.forEach(type => {
+            const list = data[type] || [];
+            html += `<div style="border:1px solid var(--border-color); padding:12px; margin-bottom:12px; border-radius:4px; background:#fff;"><div style="font-weight:600; margin-bottom:8px;">${type} 链接</div>`;
+            if (list.length === 0) {
+                html += `<div class="empty-data">暂无链接</div>`;
+            } else {
+                html += `<div style="display:flex; flex-direction:column; gap:8px;">
+                    ${list.map(item => `<div style="display:flex; align-items:center; gap:8px;">
+                        <div style="flex:1; word-break:break-all; color:#333;">${item}</div>
+                        <button class="btn btn-default" onclick="(function(t){return function(){copyLink('${type}','${'${item}'.replace(/'/g, "\'")}') }})(this)">复制</button>
+                    </div>`).join('')}
+                </div>`;
+            }
+            html += `</div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    function copyLink(type, link) {
+        // 复制链接到剪贴板
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(link).then(() => alert('已复制链接：' + link));
+            } else {
+                const ta = document.createElement('textarea'); ta.value = link; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('已复制链接：' + link);
+            }
+        } catch (e) {
+            alert('复制失败，请手动复制：' + link);
+        }
+    }
+
+    // 最终保存逻辑
+    function finalSave() {
+        const name = document.getElementById('finalName').value || '未命名活动';
+        const tbody = document.getElementById('tableBody');
+        const emptyRow = document.getElementById('emptyRow');
+        if(emptyRow) emptyRow.style.display = 'none';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="color:var(--primary-color)">${name}</td>
+            <td><span class="ant-table-tag">砸金蛋</span></td>
+            <td>2026-07-07 至 2026-07-07</td>
+            <td>0</td><td>${prizesData.length}</td><td>0</td><td>0</td>
+            <td><span class="ant-table-tag" style="background:#f6ffed; border:1px solid #b7eb8f; color:#52c41a;">未开始</span></td>
+            <td style="color:var(--primary-color); cursor:pointer;">编辑 | 详情</td>
+        `;
+        tbody.insertBefore(tr, tbody.firstChild);
+        closeModal('detailedModal');
+    }
+
+    // ================= 页面搭建器逻辑 =================
+    // 页面组件列表：索引0保留为系统不可删除的“活动状态提示栏”组件
+    let pageComponents = [
+        {
+            type: 'statusBar',
+            id: '__activity_status_bar',
+            isFixed: true,
+            // currentStatus: 'notStarted' | 'ended' | 'paused'
+            currentStatus: 'notStarted',
+            
+        }
+    ];
+    let selectedComponentIndex = -1;
+    let pageStyle = { backgroundColor: '#ffffff', padding: '16px' };
+    let myTemplates = [];
+    let dragSrcIndex = null;
+
+    const presetTemplates = {
+        summer: {
+            name: '清爽夏日风',
+            style: { backgroundColor: '#e6f7ff', padding: '16px' },
+            components: [
+                { type: 'image', src: 'https://via.placeholder.com/343x180/87e8de/ffffff?text=夏日背景', width: '100%', margin: '0 0 16px 0' },
+                { type: 'text', content: '🏖 清爽一夏，砸金蛋赢好礼', fontSize: '22px', color: '#006d75', align: 'center', margin: '0 0 16px 0' },
+                { type: 'image', src: 'https://via.placeholder.com/343x200/13c2c2/ffffff?text=金蛋区', width: '100%', margin: '0 0 16px 0' },
+                { type: 'button', content: '立即参与', bgColor: '#13c2c2', color: '#ffffff', borderRadius: '24px', align: 'center', margin: '0 0 12px 0' }
+            ]
+        },
+        luxury: {
+            name: '尊贵奢华金',
+            style: { backgroundColor: '#2b1d0e', padding: '16px' },
+            components: [
+                { type: 'image', src: 'https://via.placeholder.com/343x180/ffd666/4d3900?text=奢华背景', width: '100%', margin: '0 0 16px 0' },
+                { type: 'text', content: '👑 尊贵专享，豪礼砸出来', fontSize: '24px', color: '#ffd666', align: 'center', margin: '0 0 16px 0' },
+                { type: 'image', src: 'https://via.placeholder.com/343x200/ffc53d/4d3900?text=金蛋区', width: '100%', margin: '0 0 16px 0' },
+                { type: 'button', content: '分享活动', bgColor: '#ffc53d', color: '#4d3900', borderRadius: '4px', align: 'center', margin: '0 0 12px 0' }
+            ]
+        },
+        blindbox: {
+            name: '盲盒惊喜风',
+            style: { backgroundColor: '#f9f0ff', padding: '16px' },
+            components: [
+                { type: 'image', src: 'https://via.placeholder.com/343x180/d3adf7/ffffff?text=盲盒背景', width: '100%', margin: '0 0 16px 0' },
+                { type: 'text', content: '🎁 神秘盲盒，惊喜不断', fontSize: '22px', color: '#531dab', align: 'center', margin: '0 0 16px 0' },
+                { type: 'image', src: 'https://via.placeholder.com/343x200/722ed1/ffffff?text=金蛋区', width: '100%', margin: '0 0 16px 0' },
+                { type: 'button', content: '立即参与', bgColor: '#722ed1', color: '#ffffff', borderRadius: '30px', align: 'center', margin: '0 0 12px 0' }
+            ]
+        }
+    };
+
+    function openPageBuilder() {
+        document.getElementById('pageBuilderModal').classList.add('active');
+        renderCanvas();
+    }
+
+    function addComponent(type) {
+        const defaults = {
+            image: { type: 'image', src: 'https://via.placeholder.com/343x150/f0f0f0/999999?text=点击上传图片', width: '100%', opacity: '1', layout: { x: 0, y: 100, width: 343, height: 150 } },
+
+            text: { type: 'text', content: '请输入文本内容', fontSize: '16px', color: '#333333', opacity: '1', layout: { x: 8, y: 260, width: 320, height: 40 } },
+            button: { type: 'button', content: '按钮文字', bgColor: '#f44f23', color: '#ffffff', borderRadius: '4px', layout: { x: 16, y: 320, width: 200, height: 44 } }
+        };
+        // 插入到索引1位置，保持索引0为系统状态栏
+        const insertIndex = Math.min(1, pageComponents.length);
+        pageComponents.splice(insertIndex, 0, {...defaults[type]});
+        selectedComponentIndex = insertIndex;
+        renderCanvas();
+        renderProperties();
+    }
+
+    function renderCanvas() {
+        const content = document.getElementById('phoneContent');
+        const emptyTip = document.getElementById('emptyCanvasTip');
+        const phone = document.getElementById('builderPhone');
+
+        phone.style.backgroundColor = pageStyle.backgroundColor;
+        // 如果存在系统状态栏（索引0），为画布内容预留顶部空间，避免被覆盖
+        const basePadding = parseInt(String(pageStyle.padding || '16').replace(/[^0-9]/g, '')) || 16;
+        const hasStatusBar = pageComponents.length > 0 && pageComponents[0] && pageComponents[0].type === 'statusBar';
+        content.style.padding = (hasStatusBar ? (basePadding + 44) : basePadding) + 'px';
+
+        // 清空现有组件渲染
+        Array.from(content.children).forEach(child => {
+            if (child.id !== 'emptyCanvasTip') content.removeChild(child);
+        });
+
+        if (pageComponents.length === 0) {
+            emptyTip.style.display = 'block';
+        } else {
+            emptyTip.style.display = 'none';
+            pageComponents.forEach((comp, index) => {
+                const el = document.createElement('div');
+                el.className = 'canvas-component' + (index === selectedComponentIndex ? ' selected' : '');
+                // 若定义了 layout，则使用绝对定位，否则保留文档流样式（兼容旧属性）
+                if (!comp.layout) {
+                    el.style.margin = comp.margin || '0 0 12px 0';
+                    el.style.textAlign = comp.align || 'left';
+                } else {
+                    el.style.margin = '';
+                }
+                el.draggable = true;
+                el.setAttribute('data-index', index);
+                el.onclick = (e) => { e.stopPropagation(); selectComponent(index); };
+                el.ondragstart = (e) => handleDragStart(e, index);
+                el.ondragover = (e) => handleDragOver(e);
+                el.ondrop = (e) => handleDrop(e, index);
+                el.ondragend = (e) => handleDragEnd(e);
+                el.ondragenter = (e) => { e.preventDefault(); el.style.borderTop = '2px solid var(--primary-color)'; };
+                el.ondragleave = (e) => { el.style.borderTop = ''; };
+
+                let innerHTML = '';
+                if (comp.type === 'statusBar') {
+                    // 系统活动状态提示栏，固定在画布顶部
+                    // 如果是未开始状态，则不显示默认文本（保持空白），仅当状态为已结束或暂停时显示文字
+                    let statusLabel = '';
+                    if (comp.currentStatus === 'ended') statusLabel = '已结束';
+                    else if (comp.currentStatus === 'paused') statusLabel = '暂停';
+                    innerHTML = `<div class="activity-status-bar">${statusLabel ? ('活动状态：' + statusLabel) : ''}</div>`;
+                } else if (comp.type === 'image') {
+                    const widthStyle = comp.width ? `width:${comp.width};` : 'width:100%;';
+                    innerHTML = `
+                        <div class="image-wrapper" style="${widthStyle}">
+                            <img class="comp-image" src="${comp.src}" style="width:100%; opacity:${comp.opacity || 1}; min-height: 60px; object-fit: cover;" onerror="this.src='https://via.placeholder.com/343x150/f0f0f0/999999?text=图片加载失败'">
+                            <div class="image-upload-tip">点击更换图片</div>
+                            <div class="resize-handle br"></div>
+                        </div>`;
+                } else if (comp.type === 'text') {
+                    innerHTML = `<div class="comp-text" style="font-size:${comp.fontSize}; color:${comp.color}; text-align:${comp.align}; opacity:${comp.opacity || 1};">${comp.content}</div>`;
+                } else if (comp.type === 'button') {
+                    innerHTML = `<div class="comp-button" style="background:${comp.bgColor}; color:${comp.color}; border-radius:${comp.borderRadius}; display:inline-block;">${comp.content}</div>`;
+                }
+
+                const actions = document.createElement('div');
+                actions.className = 'component-actions';
+                if (index === 0) {
+                    // 系统保留组件：不显示任何操作按钮（隐藏锁定图标）
+                    actions.innerHTML = ``;
+                } else {
+                    actions.innerHTML = `
+                        <div class="component-action-btn move-btn" title="上移" onclick="event.stopPropagation(); moveComponent(${index}, -1)">↑</div>
+                        <div class="component-action-btn move-btn" title="下移" onclick="event.stopPropagation(); moveComponent(${index}, 1)">↓</div>
+                        <div class="component-action-btn" title="删除" onclick="event.stopPropagation(); deleteComponent(${index})">×</div>
+                    `;
+                }
+
+                el.innerHTML = innerHTML;
+                el.appendChild(actions);
+
+                // 绑定图片组件的专属交互
+                if (comp.type === 'image') {
+                    // 防止图片元素本身成为拖拽事件源（导致父元素的 ondragstart 不触发），将图片和包裹层设置为不可拖拽
+                    const imgEl = el.querySelector('.comp-image');
+                    const wrapper = el.querySelector('.image-wrapper');
+                    const resizeHandle = el.querySelector('.resize-handle');
+                    if (imgEl) {
+                        imgEl.draggable = false;
+                    }
+                    if (wrapper) {
+                        wrapper.draggable = false;
+                        wrapper.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            triggerImageUpload(index);
+                        });
+                    }
+                    if (resizeHandle) {
+                        resizeHandle.addEventListener('mousedown', function(e) {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            startResize(e, index);
+                        });
+                    }
+                }
+
+                // 如果组件定义了 layout，则使用绝对定位放置在画布上
+                if (comp.layout) {
+                    el.style.position = 'absolute';
+                    el.style.left = (comp.layout.x || 0) + 'px';
+                    el.style.top = (comp.layout.y || 0) + 'px';
+                    if (comp.layout.width) el.style.width = (comp.layout.width) + 'px';
+                    if (comp.layout.height) el.style.height = (comp.layout.height) + 'px';
+                }
+                content.appendChild(el);
+            });
+        }
+    }
+
+    function selectComponent(index) {
+        selectedComponentIndex = index;
+        renderCanvas();
+        renderProperties();
+    }
+
+    function moveComponent(index, direction) {
+        // 不允许移动系统保留组件（索引0）或把其它组件移动到索引0
+        if (index === 0) return;
+        const newIndex = index + direction;
+        if (newIndex < 1 || newIndex >= pageComponents.length) return;
+        [pageComponents[index], pageComponents[newIndex]] = [pageComponents[newIndex], pageComponents[index]];
+        selectedComponentIndex = newIndex;
+        renderCanvas();
+        renderProperties();
+    }
+
+    function deleteComponent(index) {
+        // 不允许删除系统保留组件（索引0）
+        if (index === 0) return;
+        pageComponents.splice(index, 1);
+        if (selectedComponentIndex === index) selectedComponentIndex = -1;
+        else if (selectedComponentIndex > index) selectedComponentIndex--;
+        renderCanvas();
+        renderProperties();
+    }
+
+    // 主选项卡改为单一的“组件属性”，子选项卡通过 switchAttributeSubtab 控制
+
+    function renderProperties() {
+        const empty = document.getElementById('emptyProperties');
+        const form = document.getElementById('propertiesForm');
+        const attributesTab = document.getElementById('propertiesTabAttributes');
+        if (selectedComponentIndex < 0 || selectedComponentIndex >= pageComponents.length) {
+            empty.style.display = 'block';
+            form.style.display = 'none';
+            return;
+        }
+        empty.style.display = 'none';
+        form.style.display = 'block';
+        // 默认显示属性子标签
+        switchAttributeSubtab('props');
+
+        const comp = pageComponents[selectedComponentIndex];
+        let html = '';
+
+        // 布局（横轴/纵轴/宽度/高度）和图层顺序
+        const layout = comp.layout || { x: 0, y: 0, width: 343, height: 40 };
+        html += `<div class="prop-row"><div class="prop-group"><label class="prop-label">横轴：</label><input type="number" class="ant-input prop-input" value="${layout.x}" oninput="updateLayout('x', this.value)"></div><div class="prop-group"><label class="prop-label">纵轴：</label><input type="number" class="ant-input prop-input" value="${layout.y}" oninput="updateLayout('y', this.value)"></div></div>`;
+        html += `<div class="prop-row"><div class="prop-group"><label class="prop-label">宽度：</label><input type="number" class="ant-input prop-input" value="${layout.width}" oninput="updateLayout('width', this.value)"></div><div class="prop-group"><label class="prop-label">高度：</label><input type="number" class="ant-input prop-input" value="${layout.height}" oninput="updateLayout('height', this.value)"></div></div>`;
+        html += `<div class="prop-group"><label class="prop-label">图层顺序</label><div class="layer-btns"><button type="button" class="layer-btn" onclick="event.stopPropagation(); bringToFront(${selectedComponentIndex})">置顶</button><button type="button" class="layer-btn" onclick="event.stopPropagation(); moveLayerUp(${selectedComponentIndex})">上移</button><button type="button" class="layer-btn" onclick="event.stopPropagation(); moveLayerDown(${selectedComponentIndex})">下移</button><button type="button" class="layer-btn" onclick="event.stopPropagation(); sendToBack(${selectedComponentIndex})">置底</button></div></div>`;
+
+        if (comp.type === 'statusBar') {
+            html += `<div class="prop-group"><label class="prop-label">当前状态</label><select class="ant-input prop-input" onchange="updateComponent('currentStatus', this.value)">
+                <option value="notStarted" ${comp.currentStatus === 'notStarted' ? 'selected' : ''}>未开始</option>
+                <option value="ended" ${comp.currentStatus === 'ended' ? 'selected' : ''}>已结束</option>
+                <option value="paused" ${comp.currentStatus === 'paused' ? 'selected' : ''}>暂停</option>
+            </select></div>`;
+            
+        } else if (comp.type === 'image') {
+            html += `<div class="prop-group"><label class="prop-label">图片上传</label><button type="button" class="btn btn-default" style="width:100%;" onclick="pendingUploadIndex = selectedComponentIndex; document.getElementById('imageFileInput').click()">+ 上传本地图片</button></div>`;
+            html += `<div class="prop-group"><label class="prop-label">图片地址</label><input type="text" class="ant-input prop-input" value="${comp.src}" oninput="updateComponent('src', this.value)"></div>`;
+            html += `<div class="prop-group"><label class="prop-label">透明度</label><input type="range" min="0" max="1" step="0.1" value="${comp.opacity || 1}" class="ant-input prop-input" oninput="updateComponent('opacity', this.value)"></div>`;
+            html += `<div class="prop-group"><label class="prop-label"><input type="checkbox" id="coreTriggerCheckbox" ${comp.isCoreTrigger ? 'checked' : ''} onchange="updateComponent('isCoreTrigger', this.checked)"> 设为核心抽奖事件触发源（金蛋）</label></div>`;
+        } else if (comp.type === 'text') {
+            html += `<div class="prop-group"><label class="prop-label">文本内容</label><textarea class="ant-textarea" style="height:60px;" oninput="updateComponent('content', this.value)">${comp.content}</textarea></div>`;
+            html += `<div class="prop-row"><div class="prop-group"><label class="prop-label">字号</label><input type="text" class="ant-input prop-input" value="${comp.fontSize}" oninput="updateComponent('fontSize', this.value)"></div><div class="prop-group"><label class="prop-label">颜色</label><input type="color" class="ant-input prop-input" value="${comp.color}" oninput="updateComponent('color', this.value)"></div></div>`;
+            html += `<div class="prop-group"><label class="prop-label">透明度</label><input type="range" min="0" max="1" step="0.1" value="${comp.opacity || 1}" class="ant-input prop-input" oninput="updateComponent('opacity', this.value)"></div>`;
+        } else if (comp.type === 'button') {
+            html += `<div class="prop-group"><label class="prop-label">按钮文字</label><input type="text" class="ant-input prop-input" value="${comp.content}" oninput="updateComponent('content', this.value)"></div>`;
+            html += `<div class="prop-row"><div class="prop-group"><label class="prop-label">背景色</label><input type="color" class="ant-input prop-input" value="${comp.bgColor}" oninput="updateComponent('bgColor', this.value)"></div><div class="prop-group"><label class="prop-label">文字颜色</label><input type="color" class="ant-input prop-input" value="${comp.color}" oninput="updateComponent('color', this.value)"></div></div>`;
+            html += `<div class="prop-group"><label class="prop-label">圆角（px）</label><input type="text" class="ant-input prop-input" value="${comp.borderRadius}" oninput="updateComponent('borderRadius', this.value)"></div>`;
+        }
+
+        // 将属性内容放入子选项卡容器 subProps
+        const subProps = document.getElementById('subProps');
+        if (subProps) subProps.innerHTML = html;
+    }
+
+    function switchAttributeSubtab(name) {
+        document.getElementById('subTabProps').classList.toggle('active', name === 'props');
+        document.getElementById('subProps').style.display = name === 'props' ? 'block' : 'none';
+    }
+
+    function updateComponent(prop, value) {
+        if (selectedComponentIndex < 0) return;
+        pageComponents[selectedComponentIndex][prop] = value;
+        renderCanvas();
+    }
+
+    function updateLayout(prop, value) {
+        if (selectedComponentIndex < 0) return;
+        const comp = pageComponents[selectedComponentIndex];
+        comp.layout = comp.layout || { x: 0, y: 0, width: 343, height: 40 };
+        comp.layout[prop] = Number(value);
+        renderCanvas();
+        renderProperties();
+    }
+
+    function bringToFront(index) {
+        if (index <= 0) return;
+        const moved = pageComponents.splice(index, 1)[0];
+        pageComponents.push(moved);
+        selectedComponentIndex = pageComponents.length - 1;
+        renderCanvas();
+        renderProperties();
+    }
+
+    function sendToBack(index) {
+        if (index <= 1) return; // 不能放到索引0，放到1
+        const moved = pageComponents.splice(index, 1)[0];
+        pageComponents.splice(1, 0, moved);
+        selectedComponentIndex = 1;
+        renderCanvas();
+        renderProperties();
+    }
+
+    function moveLayerUp(index) {
+        // 上移 = 索引减一
+        if (index <= 1) return;
+        moveComponent(index, -1);
+    }
+
+    function moveLayerDown(index) {
+        // 下移 = 索引加一
+        if (index < 1 || index >= pageComponents.length - 1) return;
+        moveComponent(index, 1);
+    }
+
+    function updatePageStyle(prop, value) {
+        pageStyle[prop] = value;
+        renderCanvas();
+    }
+
+    function applyTemplate(name) {
+        const tpl = presetTemplates[name];
+        if (!tpl) return;
+        pageComponents = JSON.parse(JSON.stringify(tpl.components));
+        pageStyle = {...tpl.style};
+        selectedComponentIndex = -1;
+        const bgEl = document.getElementById('pageBgColor'); if (bgEl) bgEl.value = pageStyle.backgroundColor;
+        const padEl = document.getElementById('pagePadding'); if (padEl) padEl.value = parseInt(pageStyle.padding);
+        // 高亮当前模板
+        document.querySelectorAll('#templateList .template-card').forEach(card => card.classList.remove('active'));
+        event.target.classList.add('active');
+        renderCanvas();
+        renderProperties();
+    }
+
+    function saveAsMyTemplate() {
+        if (pageComponents.length === 0) {
+            alert('请先配置页面内容再保存模板');
+            return;
+        }
+        const tplName = prompt('请输入模板名称：', '我的模板' + (myTemplates.length + 1));
+        if (!tplName) return;
+        myTemplates.push({
+            name: tplName,
+            style: {...pageStyle},
+            components: JSON.parse(JSON.stringify(pageComponents))
+        });
+        renderMyTemplates();
+        alert('模板保存成功');
+    }
+
+    function renderMyTemplates() {
+        const container = document.getElementById('myTemplateList');
+        if (myTemplates.length === 0) {
+            container.innerHTML = '<div class="empty-properties" style="padding: 12px 0;">暂无保存的模板</div>';
+            return;
+        }
+        container.innerHTML = myTemplates.map((tpl, idx) => `<div class="template-card" onclick="applyMyTemplate(${idx})">${tpl.name}</div>`).join('');
+    }
+
+    function applyMyTemplate(index) {
+        const tpl = myTemplates[index];
+        pageComponents = JSON.parse(JSON.stringify(tpl.components));
+        pageStyle = {...tpl.style};
+        selectedComponentIndex = -1;
+        const bgEl2 = document.getElementById('pageBgColor'); if (bgEl2) bgEl2.value = pageStyle.backgroundColor;
+        const padEl2 = document.getElementById('pagePadding'); if (padEl2) padEl2.value = parseInt(pageStyle.padding);
+        renderCanvas();
+        renderProperties();
+    }
+
+    function savePageBuilder() {
+        closeModal('pageBuilderModal');
+        alert('页面配置已保存');
+    }
+
+    // 图片上传
+    let pendingUploadIndex = null;
+    function triggerImageUpload(index) {
+        pendingUploadIndex = index;
+        document.getElementById('imageFileInput').click();
+        selectComponent(index);
+    }
+    function handleImageFileUpload(input) {
+        const file = input.files[0];
+        const targetIndex = pendingUploadIndex !== null ? pendingUploadIndex : selectedComponentIndex;
+        if (!file || targetIndex === null || !pageComponents[targetIndex] || pageComponents[targetIndex].type !== 'image') {
+            pendingUploadIndex = null;
+            input.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            pageComponents[targetIndex].src = e.target.result;
+            pendingUploadIndex = null;
+            input.value = '';
+            renderCanvas();
+            renderProperties();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // 图片大小调整
+    let resizeIndex = null;
+    let startX = 0;
+    let startWidth = 0;
+    let resizeWrapper = null;
+    function startResize(e, index) {
+        e.preventDefault();
+        e.stopPropagation();
+        resizeIndex = index;
+        startX = e.clientX;
+        const comp = pageComponents[index];
+        const wrapper = e.target.parentElement;
+        resizeWrapper = wrapper;
+        const rect = wrapper.getBoundingClientRect();
+        startWidth = rect.width;
+        document.addEventListener('mousemove', onResizeMove);
+        document.addEventListener('mouseup', stopResize);
+    }
+    function onResizeMove(e) {
+        if (resizeIndex === null) return;
+        const dx = e.clientX - startX;
+        let newWidth = startWidth + dx;
+        if (newWidth < 40) newWidth = 40;
+        const phoneContent = document.getElementById('phoneContent');
+        const maxWidth = phoneContent.clientWidth - parseInt(pageStyle.padding || 0) * 2;
+        if (newWidth > maxWidth) newWidth = maxWidth;
+        pageComponents[resizeIndex].width = newWidth + 'px';
+        if (resizeWrapper) resizeWrapper.style.width = newWidth + 'px';
+        renderProperties();
+    }
+    function stopResize() {
+        resizeIndex = null;
+        resizeWrapper = null;
+        document.removeEventListener('mousemove', onResizeMove);
+        document.removeEventListener('mouseup', stopResize);
+        renderCanvas();
+    }
+
+    // 拖拽排序
+    function handleDragStart(e, index) {
+        // 禁止拖拽系统保留组件（索引0）
+        if (index === 0) {
+            dragSrcIndex = null;
+            return;
+        }
+        dragSrcIndex = index;
+        e.target.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', index);
+    }
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    }
+    function handleDrop(e, dropIndex) {
+        e.stopPropagation();
+        e.preventDefault();
+        // 不允许拖拽到索引0位置，也不允许移动系统保留组件
+        if (dragSrcIndex === null || dragSrcIndex === dropIndex) return;
+        if (dropIndex === 0) return;
+        const moved = pageComponents.splice(dragSrcIndex, 1)[0];
+        pageComponents.splice(dropIndex, 0, moved);
+        selectedComponentIndex = dropIndex;
+        dragSrcIndex = null;
+        renderCanvas();
+        renderProperties();
+        return false;
+    }
+    function handleDragEnd(e) {
+        e.target.classList.remove('dragging');
+        document.querySelectorAll('.canvas-component').forEach(el => el.style.borderTop = '');
+        dragSrcIndex = null;
+    }
+
+    // 点击画布空白处取消选中
+    document.getElementById('phoneContent').addEventListener('click', function(e) {
+        if (e.target.id === 'phoneContent') {
+            selectedComponentIndex = -1;
+            renderCanvas();
+            renderProperties();
+        }
+    });
+</script>
+
+</body>
+</html>

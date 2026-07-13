@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订单管理系统 - 合同审核</title>
+    <style>
+        :root {
+            --primary-blue: #1890ff;
+            --sidebar-bg: #294067;
+            --sidebar-active: #1890ff;
+            --text-color: #333333;
+            --border-color: #f0f0f0;
+            --success-color: #52c41a;
+            --success-bg: #f6ffed;
+            --success-border: #b7eb8f;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            color: var(--text-color);
+            background-color: #f4f7f6;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 左侧侧边栏 */
+        .sidebar {
+            width: 200px;
+            background-color: var(--sidebar-bg);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .logo-area {
+            padding: 16px;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo-icon {
+            width: 24px;
+            height: 24px;
+            background: #ff4d4f;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .menu-group {
+            margin-top: 16px;
+        }
+
+        .menu-item {
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: rgba(255,255,255,0.8);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .sub-menu-item {
+            padding: 10px 20px 10px 40px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+        }
+
+        .sub-menu-item.active {
+            background-color: var(--sidebar-active);
+            color: #ffffff;
+        }
+
+        /* 主体内容区域 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .top-navbar {
+            height: 50px;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 13px;
+            color: #666666;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .avatar-small {
+            width: 24px;
+            height: 24px;
+            background: #ffe58f;
+            border-radius: 50%;
+        }
+
+        .tabs-bar {
+            background: #ffffff;
+            padding: 6px 16px 0 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 8px;
+        }
+
+        .tab-tag {
+            padding: 4px 12px;
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            font-size: 12px;
+            background: #fafafa;
+            color: #666666;
+            cursor: pointer;
+        }
+
+        .tab-tag.active {
+            background: #52c41a;
+            color: #ffffff;
+            border-color: #52c41a;
+        }
+
+        .page-body {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* 筛选区 */
+        .filter-card {
+            background: #ffffff;
+            padding: 24px;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px 32px;
+        }
+
+        .form-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .form-item label {
+            width: 80px;
+            text-align: right;
+            margin-right: 12px;
+            color: #444444;
+            font-size: 13px;
+        }
+
+        .form-item input, .form-item select {
+            flex: 1;
+            height: 32px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            padding: 0 12px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .form-actions {
+            margin-top: 16px;
+            padding-left: 92px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 5px 16px;
+            font-size: 13px;
+            border-radius: 4px;
+            border: 1px solid #d9d9d9;
+            background: #ffffff;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--primary-blue);
+            border-color: var(--primary-blue);
+            color: #ffffff;
+        }
+
+        /* 数据表格区 */
+        .table-card {
+            background: #ffffff;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+
+        .table-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 16px;
+        }
+
+        .table-tab-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            position: relative;
+            color: #666666;
+        }
+
+        .table-tab-item.active {
+            color: var(--primary-blue);
+            border-bottom: 2px solid var(--primary-blue);
+        }
+
+        .badge {
+            background: #ff4d4f;
+            color: #ffffff;
+            border-radius: 10px;
+            padding: 0 6px;
+            font-size: 11px;
+            position: absolute;
+            top: 6px;
+            right: -2px;
+        }
+
+        .table-overflow-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 12px;
+            min-width: 1500px; 
+        }
+
+        th {
+            background: #fafafa;
+            color: #5c5c5c;
+            font-weight: 500;
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 8px;
+        }
+
+        td {
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 8px;
+            color: #444444;
+            vertical-align: middle;
+            word-break: break-all;
+        }
+
+        .customer-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .customer-avatar {
+            width: 32px;
+            height: 32px;
+            background: #e8e8e8;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .customer-info-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .customer-info-text .nickname {
+            color: #888888;
+        }
+
+        .status-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .status-tag.success {
+            background-color: var(--success-bg);
+            color: var(--success-color);
+            border: 1px solid var(--success-border);
+        }
+
+        /* 签署名字列：图片缩略图容器样式 */
+        .signature-thumb-container {
+            display: flex;
+            align-items: center;
+            justify-content: start;
+        }
+
+        .signature-thumb-img {
+            height: 28px;
+            max-width: 85px;
+            object-fit: contain;
+            cursor: pointer;
+            border: 1px solid #e8e8e8;
+            background-color: #ffffff;
+            padding: 1px;
+            border-radius: 2px;
+            transition: all 0.2s ease;
+        }
+
+        .signature-thumb-img:hover {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 4px rgba(24, 144, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        .action-link {
+            color: var(--primary-blue);
+            text-decoration: none;
+        }
+
+        /* 模态大图弹窗系统 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: #ffffff;
+            border-radius: 8px;
+            width: 480px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            position: relative;
+            transform: translateY(-20px);
+            transition: transform 0.2s ease;
+        }
+
+        .modal-overlay.open .modal-card {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            font-size: 15px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 10px;
+            color: #333333;
+        }
+
+        .modal-close {
+            cursor: pointer;
+            font-size: 16px;
+            color: #999999;
+        }
+
+        .modal-close:hover {
+            color: #666666;
+        }
+
+        .signature-display-box {
+            width: 100%;
+            height: 240px;
+            border: 1px dashed #cccccc;
+            background: #fafafa;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 12px;
+        }
+
+        .real-signature-large-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* 空状态横线占位 */
+        .empty-placeholder {
+            color: #bfbfbf;
+            padding-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 左侧导航 -->
+    <div class="sidebar">
+        <div class="logo-area">
+            <span class="logo-icon"></span>
+            <span>订单管理系统</span>
+        </div>
+        <div class="menu-group">
+            <div class="menu-item"><span>📂 订单管理</span><span>▼</span></div>
+            <div class="sub-menu-item">我的订单</div>
+            <div class="sub-menu-item">退款订单</div>
+            <div class="menu-item"><span>🛍️ 商品管理</span><span>▼</span></div>
+            <div class="menu-item"><span>🛡️ 合规审核</span><span>▼</span></div>
+            <div class="sub-menu-item active">合同审核</div>
+            <div class="menu-item"><span>💵 财务审核</span><span>▼</span></div>
+        </div>
+    </div>
+
+    <!-- 右侧内容 -->
+    <div class="main-content">
+        <div class="top-navbar">
+            <div class="nav-left">☰</div>
+            <div class="nav-right">
+                <span>🔄 切换系统</span>
+                <div class="user-profile">
+                    <span class="avatar-small"></span>
+                    <span>王辉 ⌵</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs-bar">
+            <div class="tab-tag active">● 合同审核</div>
+            <div class="tab-tag">我的订单 ✕</div>
+        </div>
+
+        <div class="page-body">
+            <!-- 筛选框 -->
+            <div class="filter-card">
+                <div class="form-grid">
+                    <div class="form-item"><label>昵称</label><input type="text" placeholder="请输入昵称"></div>
+                    <div class="form-item"><label>姓名</label><input type="text" placeholder="请输入姓名"></div>
+                    <div class="form-item"><label>合同编号</label><input type="text" placeholder="请输入合同编号"></div>
+                    <div class="form-item"><label>业务单号</label><input type="text" placeholder="请输入订单号"></div>
+                    <div class="form-item"><label>客户ID</label><input type="text" placeholder="请输入客户ID"></div>
+                    <div class="form-item">
+                        <label>审核状态</label>
+                        <select><option>审核通过</option></select>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-primary">查询</button>
+                    <button class="btn">重置</button>
+                </div>
+            </div>
+
+            <!-- 数据表格 -->
+            <div class="table-card">
+                <div class="table-tabs">
+                    <div class="table-tab-item active">购买合同<span class="badge">0</span></div>
+                    <div class="table-tab-item">回访合同<span class="badge">0</span></div>
+                    <div class="table-tab-item">退款合同<span class="badge">0</span></div>
+                </div>
+
+                <div class="table-overflow-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 140px;">业务单号</th>
+                                <th style="width: 130px;">客户信息</th>
+                                <th style="width: 140px;">合同编号</th>
+                                <th style="width: 180px;">合同流水号</th>
+                                <th style="width: 140px;">产品名称</th>
+                                <!-- 签署名字列 -->
+                                <th style="width: 110px;">签署名字</th>
+                                <th style="width: 140px;">签署时间</th>
+                                <th style="width: 80px;">审核状态</th>
+                                <th style="width: 80px;">审核人</th>
+                                <th style="width: 140px;">审核时间</th>
+                                <th style="width: 60px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- 行 1：王亚洁（唯一种置手写图片并支持点击放大的行） -->
+                            <tr>
+                                <td>20260629152652380853</td>
+                                <td>
+                                    <div class="customer-cell">
+                                        <div class="customer-avatar"></div>
+                                        <div class="customer-info-text">
+                                            <span class="nickname">迪丽热吗</span>
+                                            <span>王亚洁</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>TD03502026063014211526531211</td>
+                                <td>TD20260630142115723m8JvF</td>
+                                <td>金股齐鸣</td>
+                                <!-- 核心业务修改：单元格内置入提取出来的缩略图资产，点击触发放大 -->
+                                <td>
+                                    <div class="signature-thumb-container">
+                                        <img class="signature-thumb-img" 
+                                             src="384facd5a6eb240e5058bfab9d5bfb17.jpg" 
+                                             alt="手写签名提取" 
+                                             title="点击放大查看" 
+                                             onclick="openLargeSignature()">
+                                    </div>
+                                </td>
+                                <td>2026-06-30 14:21:43</td>
+                                <td><span class="status-tag success">通过</span></td>
+                                <td>董圣洁</td>
+                                <td>2026-06-30 16:45:47</td>
+                                <td><a class="action-link" href="#">预览</a></td>
+                            </tr>
+                            
+                            <!-- 行 2：吕丽平（完全留空，等待签名提取） -->
+                            <tr>
+                                <td>20260630160441876671</td>
+                                <td>
+                                    <div class="customer-cell">
+                                        <div class="customer-avatar"></div>
+                                        <div class="customer-info-text">
+                                            <span class="nickname">昵称JJ6nL5</span>
+                                            <span>吕丽平</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>TD03372026063016142387164367</td>
+                                <td>TD20260630161424403Lyq6A</td>
+                                <td>导龙掘金班</td>
+                                <!-- 留空处理 -->
+                                <td><span class="empty-placeholder">-</span></td>
+                                <td>2026-06-30 16:16:15</td>
+                                <td><span class="status-tag success">通过</span></td>
+                                <td>董圣洁</td>
+                                <td>2026-06-30 16:45:11</td>
+                                <td><a class="action-link" href="#">预览</a></td>
+                            </tr>
+
+                            <!-- 行 3：史纪星（完全留空，等待签名提取） -->
+                            <tr>
+                                <td>20260630145409958331</td>
+                                <td>
+                                    <div class="customer-cell">
+                                        <div class="customer-avatar"></div>
+                                        <div class="customer-info-text">
+                                            <span class="nickname">种植</span>
+                                            <span>史纪星</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>TD03412026063015104827280798</td>
+                                <td>TD20260630151048793Oe6Vn</td>
+                                <td>慧眼擒牛服务体系</td>
+                                <!-- 留空处理 -->
+                                <td><span class="empty-placeholder">-</span></td>
+                                <td>2026-06-30 15:14:38</td>
+                                <td><span class="status-tag success">通过</span></td>
+                                <td>董圣洁</td>
+                                <td>2026-06-30 16:45:35</td>
+                                <td><a class="action-link" href="#">预览</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 电子手写签名高清放大弹窗组件 -->
+    <div class="modal-overlay" id="largeSignatureModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <span>电子手写签名提取 - 高清预览 (王亚洁)</span>
+                <span class="modal-close" onclick="closeLargeSignature()">✕</span>
+            </div>
+            <div class="signature-display-box">
+                <!-- 高清展示王亚洁真实手写笔迹图片 -->
+                <img class="real-signature-large-img" src="384facd5a6eb240e5058bfab9d5bfb17.jpg" alt="高清手写签名">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const signatureModal = document.getElementById('largeSignatureModal');
+
+        // 打开高清大图弹窗
+        function openLargeSignature() {
+            signatureModal.classList.add('open');
+        }
+
+        // 关闭大图弹窗
+        function closeLargeSignature() {
+            signatureModal.classList.remove('open');
+        }
+
+        // 点击遮罩空白区自动关闭
+        signatureModal.addEventListener('click', function(e) {
+            if (e.target === signatureModal) {
+                closeLargeSignature();
+            }
+        });
+    </script>
+</body>
+</html>

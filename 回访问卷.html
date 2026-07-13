@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>客户适当性确认问卷</title>
+    <style>
+        :root {
+            --primary-color: #F03838;
+            --text-main: #333333;
+            --text-sub: #666666;
+            --bg-light: #F7F9FC;
+            --border-color: #EFEFEF;
+            --orange-color: #E67E22;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #F4F6F9;
+            color: var(--text-main);
+            line-height: 1.6;
+            padding-bottom: 80px;
+        }
+
+        /* 问卷卡片 */
+        .questionnaire-container {
+            background-color: #FFFFFF;
+            margin: 12px;
+            border-radius: 8px;
+            padding: 20px 16px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+        }
+
+        .title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #111111;
+            margin-bottom: 16px;
+        }
+
+        /* 顶部合规依据和用户信息 */
+        .info-section {
+            font-size: 13px;
+            color: var(--text-sub);
+            margin-bottom: 16px;
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 12px;
+        }
+        .user-meta {
+            background-color: var(--bg-light);
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 14px;
+        }
+        .user-meta div {
+            margin-bottom: 4px;
+        }
+        .user-meta div:last-child {
+            margin-bottom: 0;
+        }
+        .user-meta span {
+            color: #111111;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        /* 题目分类区域 */
+        .category-group {
+            margin-top: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px 12px;
+            background-color: #FFFFFF;
+        }
+
+        /* 单个题目条目 */
+        .question-item {
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #FAFAFA;
+        }
+        .question-item:last-of-type {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        /* 题目字体大小为 14px */
+        .question-text {
+            font-size: 14px;
+            color: #333333;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        /* 选项布局 - 完全不展示 */
+        .options-group {
+            display: none;
+        }
+        .option-label {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+        .option-label input[type="radio"] {
+            margin-right: 6px;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary-color);
+        }
+
+        /* 一键选择快捷栏 */
+        .quick-action-bar {
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        
+        /* 未选中状态：橙色空框，黑色字，字体大小为 12px */
+        .quick-btn {
+            flex: 1;
+            padding: 8px 0;
+            font-size: 12px;
+            border: 1px solid var(--orange-color);
+            border-radius: 6px;
+            background-color: transparent;
+            color: #333333;
+            cursor: pointer;
+            font-weight: 500;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        /* 选中状态：变为橙色实框（橙色背景，白色字） */
+        .quick-btn.active {
+            background-color: var(--orange-color);
+            color: #FFFFFF;
+            border-color: var(--orange-color);
+        }
+
+        /* 底部声明话术 */
+        .statement-text {
+            font-size: 12px;
+            color: #888888;
+            margin-top: 16px;
+            text-align: justify;
+            line-height: 1.5;
+        }
+
+        /* 底部固定提交栏 */
+        .footer-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #FFFFFF;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-color);
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+        .submit-btn {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: #FFFFFF;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 0;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .submit-btn:active {
+            background-color: #D62F2F;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="questionnaire-container">
+        <div class="title">客户适当性确认问卷</div>
+        
+        <div class="info-section">
+            根据《证券法》、《证券投资顾问业务暂行规定》、《证券期货投资者适当性管理办法》、《证券经营机构投资者适当性管理实施指引（试行）》等法律法规自律规定，为保障您的合法权益，请您认真阅读并如实完成问卷：
+            <div class="user-meta">
+                <div>您的姓名：<span>王*洁</span></div>
+                <div>您的身份证号：<span>140502********2547</span></div>
+            </div>
+        </div>
+
+        <div class="category-group">
+            
+            <div class="question-item">
+                <div class="question-text">1、我公司工作人员未通过任何方式向您做出投资不受损失或保证收益的承诺。</div>
+                <div class="options-group">
+                    <label class="option-label"><input type="radio" name="q1" value="A">A</label>
+                    <label class="option-label"><input type="radio" name="q1" value="B">B</label>
+                </div>
+            </div>
+            
+            <div class="question-item">
+                <div class="question-text">2、我公司工作人员未通过任何方式与您做分享收益或分担损失的约定。</div>
+                <div class="options-group">
+                    <label class="option-label"><input type="radio" name="q2" value="A">A</label>
+                    <label class="option-label"><input type="radio" name="q2" value="B">B</label>
+                </div>
+            </div>
+            
+            <div class="question-item">
+                <div class="question-text">3、我公司工作人员不存在以个人名义向您收取服务费用的行为。</div>
+                <div class="options-group">
+                    <label class="option-label"><input type="radio" name="q3" value="A">A</label>
+                    <label class="option-label"><input type="radio" name="q3" value="B">B</label>
+                </div>
+            </div>
+
+            <div class="quick-action-bar">
+                <button class="quick-btn" onclick="quickSelect(1, 'A', this)">以上全部为是</button>
+                <button class="quick-btn" onclick="quickSelect(1, 'PART_B', this)">以上部分为否</button>
+            </div>
+        </div>
+
+        <div class="category-group">
+            
+            <div class="question-item">
+                <div class="question-text">4、我公司工作人员已使用企业微信与您进行沟通。</div>
+                <div class="options-group">
+                    <label class="option-label"><input type="radio" name="q4" value="A">A</label>
+                    <label class="option-label"><input type="radio" name="q4" value="B">B</label>
+                </div>
+            </div>
+            
+            <div class="question-item">
+                <div class="question-text">5、我公司提供的《风险揭示书》、《个人风险承受能力等级测评》以及《服务协议》均由您本人签署并阅读核对无误。</div>
+                <div class="options-group">
+                    <label class="option-label"><input type="radio" name="q5" value="A">A</label>
+                    <label class="option-label"><input type="radio" name="q5" value="B">B</label>
+                </div>
+            </div>
+            
+            <div class="question-item">
+                <div class="question-text">6、您属于自愿付款至我司官方账户，并认可费用计算及扣除方式。</div>
+                <div class="options-group">
+                    <label class="option-label"><input type="radio" name="q6" value="A">A</label>
+                    <label class="option-label"><input type="radio" name="q6" value="B">B</label>
+                </div>
+            </div>
+
+            <div class="quick-action-bar">
+                <button class="quick-btn" onclick="quickSelect(2, 'A', this)">以上全部为是</button>
+                <button class="quick-btn" onclick="quickSelect(2, 'PART_B', this)">以上部分为否</button>
+            </div>
+        </div>
+
+        <div class="statement-text">
+            请您再次确认：以上内容您已充分阅读并如实完成填写，如您故意隐瞒或未如实填写所造成的后果将由您本人自行承担。
+        </div>
+    </div>
+
+    <div class="footer-bar">
+        <button class="submit-btn" onclick="submitForm()">提交问卷</button>
+    </div>
+
+    <script>
+        /**
+         * 一键快捷选择控制函数
+         * @param {number} groupType - 组别类型：1代表前三题，2代表后三题
+         * @param {string} type - 'A' 全部为是，'PART_B' 部分为否
+         * @param {HTMLElement} btn - 当前点击的按钮对象
+         */
+        function quickSelect(groupType, type, btn) {
+            const questions = groupType === 1 ? ['q1', 'q2', 'q3'] : ['q4', 'q5', 'q6'];
+            
+            // 1. 处理选项自动勾选逻辑
+            if (type === 'A') {
+                questions.forEach(qName => {
+                    const radios = document.getElementsByName(qName);
+                    for (let i = 0; i < radios.length; i++) {
+                        if (radios[i].value === type) {
+                            radios[i].checked = true;
+                        }
+                    }
+                });
+            } else if (type === 'PART_B') {
+                questions.forEach((qName, index) => {
+                    const radios = document.getElementsByName(qName);
+                    const targetValue = index === questions.length - 1 ? 'B' : 'A';
+                    for (let i = 0; i < radios.length; i++) {
+                        if (radios[i].value === targetValue) {
+                            radios[i].checked = true;
+                        }
+                    }
+                });
+            }
+
+            // 2. 清除当前组内所有快捷按钮的激活状态，并给当前点击的按钮加上 .active 触发橙色满框效果
+            const parentBar = btn.parentElement;
+            const siblingBtns = parentBar.querySelectorAll('.quick-btn');
+            siblingBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        // 表单提交前的完整性校验
+        function submitForm() {
+            let allAnswered = true;
+            for (let i = 1; i <= 6; i++) {
+                const checkedRadio = document.querySelector(`input[name="q${i}"]:checked`);
+                if (!checkedRadio) {
+                    allAnswered = false;
+                    break;
+                }
+            }
+
+            if (!allAnswered) {
+                alert("⚠️ 请完成全部 6 道题目的作答后再提交！");
+            } else {
+                alert("🎉 问卷提交成功！正在同步进入最终合规审核环节。");
+            }
+        }
+    </script>
+</body>
+</html>
